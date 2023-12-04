@@ -4,17 +4,16 @@ class CustomTableViewCell: UITableViewCell {
 
     private let stackView1 = UIStackView()
     private let stackView2 = UIStackView()
-    let pokemonImage = UIImageView()
-    let nameLabel = UILabel()
-    let attackLabel = UILabel()
-    let defenseLabel = UILabel()
-
+    private let pokemonImage = UIImageView()
+    private let nameLabel = UILabel()
+    private let attackLabel = UILabel()
+    private let defenseLabel = UILabel()
+    private let spinner = Spinner()
     var task: URLSessionDataTask?
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
-        configureStackView1()
-        configureStackView2()
+        setupViews()
     }
 
     required init?(coder: NSCoder) {
@@ -26,11 +25,37 @@ class CustomTableViewCell: UITableViewCell {
         task?.cancel()
         pokemonImage.image = nil
     }
+
+    func configure(with pokemon: Pokemon) {
+        nameLabel.text = pokemon.name
+        attackLabel.text = "Ataque: \(pokemon.attack)"
+        defenseLabel.text = "Defensa: \(pokemon.defense)"
+        let urlString = pokemon.imageUrl
+        if let url = URL(string: urlString) {
+//            spinner.startSpinner()
+            task = URLSession.shared.dataTask(with: url) { data, response, error in
+                guard let data = data, error == nil else { return }
+                DispatchQueue.main.async { [weak self] in
+                    self?.pokemonImage.image = UIImage(data: data)
+//                    self?.spinner.stopSpinner()
+                }
+            }
+            task?.resume()
+        }
+    }
 }
 
 //MARK: - Methods
 
 extension CustomTableViewCell {
+
+    private func setupViews() {
+        configureStackView1()
+        configureStackView2()
+        configureAttackLabel()
+        configureDefenseLabel()
+        
+    }
 
     private func configurePokemonImageView() {
         pokemonImage.heightAnchor.constraint(equalToConstant: 120).isActive = true
@@ -68,7 +93,6 @@ extension CustomTableViewCell {
     private func configureAttackLabel() {
         attackLabel.heightAnchor.constraint(equalToConstant: 40).isActive = true
         attackLabel.textAlignment = .left
-        attackLabel.text = "Ataque 45"
         attackLabel.textColor = .black
     }
 
@@ -79,14 +103,10 @@ extension CustomTableViewCell {
         ])
 
         defenseLabel.textAlignment = .right
-        defenseLabel.text = "Defensa 45"
         defenseLabel.textColor = .black
     }
 
     private func configureStackView2() {
-        configureAttackLabel()
-        configureDefenseLabel()
-
         stackView1.addArrangedSubview(stackView2 )
         stackView2.addArrangedSubview(attackLabel)
         stackView2.addArrangedSubview(defenseLabel)

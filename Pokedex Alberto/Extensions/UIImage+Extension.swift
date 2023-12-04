@@ -1,8 +1,6 @@
 import UIKit
 
 extension UIImageView {
-
-
     
     func loadFrom(URLAddres : String, completion: @escaping () -> Void) {
         guard let url = URL(string: URLAddres) else { return }

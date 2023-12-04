@@ -24,7 +24,6 @@ class PokemonDetailViewController: UIViewController {
         super.viewDidLoad()
         setupUI()
         view.backgroundColor = .white
-        setupSpinner()
     }
 }
 
@@ -40,7 +39,7 @@ private extension PokemonDetailViewController {
         configureLabelStackView()
         configureLabelAttack()
         configureLabelDefense()
-        setupSpinner()
+        configureSpinner()
     }
 
     private func configureMainStackView() {
@@ -65,7 +64,6 @@ private extension PokemonDetailViewController {
         spinner.isHidden = false
         spinner.startSpinner()
         imagePokemon.contentMode = .scaleAspectFill
-
         imagePokemon.loadFrom(URLAddres: showPokemon?.imageUrl ?? "", completion: {
             self.spinner.stopSpinner()
             self.spinner.isHidden = true
@@ -115,17 +113,12 @@ private extension PokemonDetailViewController {
         defenseLabel.text = "Defensa: \(showPokemon?.defense ?? 0)"
     }
 
-    private func setupSpinner() {
-        view.addSubview(spinner)
-
+    private func configureSpinner() {
+        imagePokemon.addSubview(spinner)
         spinner.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             spinner.centerXAnchor.constraint(equalTo: imagePokemon.centerXAnchor),
-            spinner.centerYAnchor.constraint(equalTo: imagePokemon.centerYAnchor),
-            spinner.widthAnchor.constraint(equalToConstant: 100),
-            spinner.heightAnchor.constraint(equalToConstant: 100)
+            spinner.centerYAnchor.constraint(equalTo: imagePokemon.centerYAnchor)
         ])
-        spinner.backgroundColor = UIColor(white: 0, alpha: 0.7)
-        spinner.isHidden = true
     }
 }

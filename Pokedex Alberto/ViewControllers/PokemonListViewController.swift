@@ -9,19 +9,16 @@ class PokemonListViewController: UIViewController {
     private let textField = UITextField()
 
     //    MARK: - Properties
-    private var pokemonManager = PokemonManager()
-    private var pokemons: [Pokemon] = []
-    private var pokemonSeleccionado: Pokemon?
-    private var pokemonFiltrados: [Pokemon] = []
+    private let pokemonManager = PokemonAPIService()
+    private var pokemonList: [Pokemon] = []
+    private var filteredPokemonList: [Pokemon] = []
 
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        pokemonManager.delegado = self
+        pokemonManager.delegate = self
         setupUI()
-        // Ejecutar el metodo para buscar la lista de pokemon en la API
         pokemonManager.showPokemon()
     }
 }
@@ -30,7 +27,7 @@ class PokemonListViewController: UIViewController {
 extension PokemonListViewController {
 
     private func setupUI() {
-        self.title = "Pokedex"
+        title = "Pokedex"
         configureMainStackView()
         configureTextField()
         configureTableView()
@@ -40,7 +37,6 @@ extension PokemonListViewController {
         view.addSubview(mainStackView)
         mainStackView.addArrangedSubview(textField)
         mainStackView.addArrangedSubview(tableView)
-
         mainStackView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             mainStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
@@ -69,6 +65,12 @@ extension PokemonListViewController {
         tableView.dataSource = self
         tableView.delegate = self
     }
+
+    private func reloadTable() {
+        DispatchQueue.main.async { [weak self] in
+            self?.tableView.reloadData()
+        }
+    }
 }
 
 // MARK: - UITextFieldDelegate
@@ -77,10 +79,10 @@ extension PokemonListViewController: UITextFieldDelegate {
 
     func textFieldDidChangeSelection(_ textField: UITextField) {
         if let texto = textField.text, !texto.isEmpty {
-            filtrarPokemons(texto: texto)
+            filterPokemons(text: texto)
         } else {
-            pokemonFiltrados = pokemons
-            tableView.reloadData()
+            filteredPokemonList = pokemonList
+            reloadTable()
         }
     }
 
@@ -89,9 +91,9 @@ extension PokemonListViewController: UITextFieldDelegate {
         return true
     }
 
-    private func filtrarPokemons(texto: String) {
-        pokemonFiltrados = pokemons.filter { $0.name.lowercased().contains(texto.lowercased()) }
-        tableView.reloadData()
+    private func filterPokemons(text: String) {
+        filteredPokemonList = pokemonList.filter { $0.name.lowercased().contains(text.lowercased()) }
+        reloadTable()
     }
 }
 
@@ -99,58 +101,37 @@ extension PokemonListViewController: UITextFieldDelegate {
 
 extension PokemonListViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return pokemonFiltrados.count
+        return filteredPokemonList.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: "CustomCell", for: indexPath) as? CustomTableViewCell else {
             return UITableViewCell()
         }
-
-        cell.nameLabel.text = pokemonFiltrados[indexPath.row].name
-        cell.attackLabel.text = "Ataque: \(pokemonFiltrados[indexPath.row].attack)"
-        cell.defenseLabel.text = "Defensa: \(pokemonFiltrados[indexPath.row].defense)"
-
-        let urlString = pokemonFiltrados[indexPath.row].imageUrl
-        if let url = URL(string: urlString) {
-            cell.task = URLSession.shared.dataTask(with: url) { data, response, error in
-                guard let data = data, error == nil else { return }
-                DispatchQueue.main.async {
-                    if let currentCell = tableView.cellForRow(at: indexPath) as? CustomTableViewCell {
-                        currentCell.pokemonImage.image = UIImage(data: data)
-                    }
-                }
-            }
-            cell.task?.resume()
-        }
+        let pokemon = filteredPokemonList[indexPath.row]
+        cell.configure(with: pokemon)
         return cell
-    }
-
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let pokemonDetailVC = PokemonDetailViewController()
-        pokemonDetailVC.showPokemon = pokemonFiltrados[indexPath.row]
-        self.navigationController?.pushViewController(pokemonDetailVC, animated: true)
-
-        tableView.deselectRow(at: indexPath, animated: true)
     }
 }
 
 // MARK: - UITableViewDelegate
 
 extension PokemonListViewController: UITableViewDelegate {
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let pokemonDetailVC = PokemonDetailViewController()
+        pokemonDetailVC.showPokemon = filteredPokemonList[indexPath.row]
+        self.navigationController?.pushViewController(pokemonDetailVC, animated: true)
+        tableView.deselectRow(at: indexPath, animated: true)
+    }
+
 }
 
 //MARK: - PokemonManagerDelegate
 
-extension PokemonListViewController: PokemonManagerDelegado {
+extension PokemonListViewController: PokemonAPIServiceDelegate{
     func showPokemonList(list: [Pokemon]) {
-        pokemons = list
-
-        // Este metodo hace que la carga se realice en el hilo principal
-        DispatchQueue.main.async {
-            self.pokemonFiltrados = self.pokemons
-            self.tableView.reloadData()
-        }
+        pokemonList = list
+        filteredPokemonList = list
+        reloadTable()
     }
 }
-
